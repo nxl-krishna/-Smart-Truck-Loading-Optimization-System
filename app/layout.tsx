@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Smart Logistics Platform",
   description: "AI-Powered Truck Loading Optimization",
+  icons: {
+    icon: "/icon.png", // Path to your file in public folder
+  },
 };
 
 export default function RootLayout({
