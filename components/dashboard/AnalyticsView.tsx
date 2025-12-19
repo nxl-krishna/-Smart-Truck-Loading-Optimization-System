@@ -8,15 +8,21 @@ export default function AnalyticsView({ userId, role }: { userId: string, role: 
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await fetch(`/api/analytics?userId=${userId}&role=${role}`);
-      const json = await res.json();
-      setData(json);
-      setLoading(false);
+      try {
+        const res = await fetch(`/api/analytics?userId=${userId}&role=${role}`);
+        const json = await res.json();
+        setData(json);
+      } catch (e) {
+        console.error("Analytics fetch error", e);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [userId, role]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Loading Analytics...</div>;
+  if (!data) return <div className="p-10 text-center text-red-500">Failed to load data</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -53,13 +59,15 @@ export default function AnalyticsView({ userId, role }: { userId: string, role: 
             No completed trips data available yet.
           </div>
         ) : (
-          <div className="flex items-end justify-between h-64 space-x-2">
+          // FIXED: Added 'items-end' to align bars to bottom
+          <div className="flex items-end justify-between h-64 space-x-2 px-4 pb-2">
             {data.chartData.map((item: any, i: number) => (
-              <div key={i} className="flex flex-col items-center flex-1 group">
+              // FIXED: Added 'h-full justify-end' here so the wrapper fills the height
+              <div key={i} className="flex flex-col items-center flex-1 group h-full justify-end relative">
                 
-                {/* Tooltip */}
-                <div className="opacity-0 group-hover:opacity-100 mb-2 text-xs bg-black text-white p-1 rounded transition-opacity absolute -translate-y-8">
-                  {item.value}% Utilized
+                {/* Tooltip (Absolute position to float above) */}
+                <div className="opacity-0 group-hover:opacity-100 mb-2 text-xs bg-black text-white p-2 rounded absolute -top-10 transition-opacity whitespace-nowrap z-10">
+                  {item.value}% Utilized • ₹{item.cost}
                 </div>
 
                 {/* The Bar */}
