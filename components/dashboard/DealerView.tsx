@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 export default function DealerView({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false);
+  const [jobs, setJobs] = useState<any[]>([]);
   
-  // We only need basic details to calculate optimization
+  // Truck Form State
   const [truck, setTruck] = useState({
     licensePlate: "",
     type: "Container",
@@ -14,6 +14,20 @@ export default function DealerView({ userId }: { userId: string }) {
     capacityVolume: "",
     costPerKm: "",
   });
+
+  // 1. Fetch Jobs on Load
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const res = await fetch(`/api/trucks/jobs?userId=${userId}`);
+        const data = await res.json();
+        setJobs(data);
+      } catch (error) {
+        console.error("Failed to fetch jobs");
+      }
+    };
+    fetchJobs();
+  }, [userId]);
 
   const handleAddTruck = async () => {
     setLoading(true);
@@ -23,29 +37,15 @@ export default function DealerView({ userId }: { userId: string }) {
     });
     setLoading(false);
     alert("Truck Added to Fleet!");
+    // Clear form optional
   };
-
-  // Inside DealerView component
-const [jobs, setJobs] = useState<any[]>([]);
-
-// Add this useEffect to load jobs when page opens
-
-
-useEffect(() => {
-  const fetchJobs = async () => {
-    // We need a new GET route for this, or just reuse an existing one.
-    // For speed, let's create a quick API route: /api/trucks/jobs?userId=...
-    const res = await fetch(`/api/trucks/jobs?userId=${userId}`);
-    const data = await res.json();
-    setJobs(data);
-  };
-  fetchJobs();
-}, [userId]);
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md border max-w-2xl">
+    <div className="bg-white p-6 rounded-xl shadow-md border max-w-2xl mx-auto">
+      
+      {/* SECTION 1: Add Truck Form */}
       <h2 className="text-xl font-semibold mb-4">🚛 Add Truck to Fleet</h2>
-      <div className="space-y-4">
+      <div className="space-y-4 mb-8">
         <input 
           placeholder="License Plate (e.g. MH-04-AB-1234)" 
           className="w-full border p-2 rounded"
@@ -81,41 +81,98 @@ useEffect(() => {
         >
           {loading ? "Adding..." : "Register Truck"}
         </button>
+      </div>
 
-                <div className="mt-8 border-t pt-6">
-
-                    <div className="flex justify-between items-center mb-4">
-  
-  
-</div>
-        <h3 className="text-xl font-bold mb-4">🚛 My Active Jobs</h3>
-        <button 
-    onClick={() => window.location.reload()} 
-    className="text-sm text-blue-600 underline"
-  >
-    Refresh List
-  </button>
+      {/* SECTION 2: My Active Jobs */}
+      <div className="mt-8 border-t pt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold">🚛 My Active Jobs</h3>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="text-sm text-blue-600 underline hover:text-blue-800"
+          >
+            Refresh List
+          </button>
+        </div>
+        
         {jobs.length === 0 ? (
-            <p className="text-gray-500">No shipments assigned yet.</p>
+          <p className="text-gray-500 text-center py-4">No shipments assigned yet.</p>
         ) : (
-            <div className="grid gap-4">
+          <div className="grid gap-4">
             {jobs.map((job) => (
-                <div key={job.id} className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+              <div key={job.id} className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                
+                {/* Job Header */}
                 <div className="flex justify-between">
-                    <span className="font-bold text-blue-800">Route: {job.origin} ➝ {job.destination}</span>
-                    <span className="bg-green-200 text-green-800 px-2 py-1 rounded text-xs">
+                  <span className="font-bold text-blue-800">
+                    {job.origin} <span className="text-gray-400">➝</span> {job.destination}
+                  </span>
+                  <span className={`px-2 py-1 rounded text-xs font-bold ${
+                    job.status === 'DELIVERED' ? 'bg-green-200 text-green-800' : 
+                    job.status === 'IN_TRANSIT' ? 'bg-orange-200 text-orange-800' : 
+                    'bg-gray-200 text-gray-800'
+                  }`}>
                     {job.status}
-                    </span>
+                  </span>
                 </div>
+
+                {/* Job Details */}
                 <div className="mt-2 text-sm text-gray-600">
-                    <p>Cargo: {job.totalWeight}kg | {job.totalVolume}m³</p>
-                    <p className="mt-1 font-semibold">Truck Assigned: {job.assignedTruck.licensePlate}</p>
+                  <p>Cargo: {job.totalWeight}kg | {job.totalVolume}m³</p>
+                  <p className="mt-1 font-semibold">Truck: {job.assignedTruck.licensePlate}</p>
                 </div>
+
+                {/* --- NEW: DRIVER CONTROLS --- */}
+                <div className="mt-4 flex gap-2">
+                  
+                  {/* Button 1: Start Trip */}
+                  {job.status === "ASSIGNED" && (
+                    <button 
+                      onClick={async () => {
+                        if(!confirm("Start this trip?")) return;
+                        await fetch("/api/shipments", {
+                          method: "PATCH",
+                          body: JSON.stringify({ shipmentId: job.id, status: "IN_TRANSIT" }),
+                        });
+                        alert("Trip Started!");
+                        window.location.reload();
+                      }}
+                      className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700 w-full"
+                    >
+                      Start Trip 🚚
+                    </button>
+                  )}
+
+                  {/* Button 2: Mark Delivered */}
+                  {job.status === "IN_TRANSIT" && (
+                    <button 
+                      onClick={async () => {
+                        if(!confirm("Confirm delivery? This will generate the invoice.")) return;
+                        await fetch("/api/shipments", {
+                          method: "PATCH",
+                          body: JSON.stringify({ shipmentId: job.id, status: "DELIVERED" }),
+                        });
+                        alert("Delivered! CO2 & Cost Report Generated.");
+                        window.location.reload();
+                      }}
+                      className="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-green-700 w-full"
+                    >
+                      Mark Delivered ✅
+                    </button>
+                  )}
+
+                  {job.status === "DELIVERED" && (
+                    <div className="text-xs text-green-700 font-semibold text-center w-full py-2 bg-green-100 rounded">
+                      Trip Completed
+                    </div>
+                  )}
                 </div>
+                {/* --- END CONTROLS --- */}
+
+              </div>
             ))}
-            </div>
+          </div>
         )}
-</div>
       </div>
     </div>
   );
