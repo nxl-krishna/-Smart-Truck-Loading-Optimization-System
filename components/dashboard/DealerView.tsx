@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ChatWindow from "../ChatWindow";
 
 export default function DealerView({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
-  
+  const [activeChat, setActiveChat] = useState<{id: string, title: string} | null>(null);
   // Truck Form State
   const [truck, setTruck] = useState({
     licensePlate: "",
@@ -107,13 +108,22 @@ export default function DealerView({ userId }: { userId: string }) {
                   <span className="font-bold text-blue-800">
                     {job.origin} <span className="text-gray-400">➝</span> {job.destination}
                   </span>
+                  
                   <span className={`px-2 py-1 rounded text-xs font-bold ${
                     job.status === 'DELIVERED' ? 'bg-green-200 text-green-800' : 
                     job.status === 'IN_TRANSIT' ? 'bg-orange-200 text-orange-800' : 
                     'bg-gray-200 text-gray-800'
                   }`}>
                     {job.status}
+                    
                   </span>
+                  <button 
+  onClick={() => setActiveChat({ id: job.id, title: `Shipment to ${job.destination}` })}
+  className="mt-2 w-full border border-gray-300 text-gray-700 px-4 py-2 rounded text-sm font-bold hover:bg-gray-50"
+>
+  💬 Chat with Warehouse
+</button>
+                  
                 </div>
 
                 {/* Job Details */}
@@ -174,6 +184,15 @@ export default function DealerView({ userId }: { userId: string }) {
           </div>
         )}
       </div>
+      {/* ... inside the return div, at the very end ... */}
+{activeChat && (
+  <ChatWindow 
+    shipmentId={activeChat.id} 
+    currentUserId={userId} 
+    title={activeChat.title}
+    onClose={() => setActiveChat(null)} 
+  />
+)}
     </div>
   );
 }

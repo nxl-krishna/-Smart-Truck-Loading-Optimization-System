@@ -60,7 +60,9 @@ model Shipment {
   distance        Float?         // We will calculate this later
   totalWeight     Float          // in kg
   totalVolume     Float          // in cubic meters
+  messages        Message[]
   status          ShipmentStatus @default(PENDING)
+  
   
   // Costs & Efficiency (Calculated after optimization)
   estimatedCost   Float?
@@ -75,4 +77,16 @@ model Shipment {
   
   assignedTruckId String?
   assignedTruck   Truck?         @relation(fields: [assignedTruckId], references: [id])
+}
+
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  senderId  String   // The User ID of who sent it
+  createdAt DateTime @default(now())
+
+  // Link chat to a specific shipment/job
+  shipmentId String
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
 }

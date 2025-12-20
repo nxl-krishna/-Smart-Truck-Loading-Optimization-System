@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import ChatWindow from "../ChatWindow";
 
 // 1. Dynamic Import for the Map
 const RouteMap = dynamic(() => import("../../components/dashboard/RouteMap"), { 
@@ -15,6 +16,7 @@ export default function WarehouseView({ userId }: { userId: string }) {
   const [matches, setMatches] = useState<any[]>([]);
   const [currentShipmentId, setCurrentShipmentId] = useState<string | null>(null);
   const [myShipments, setMyShipments] = useState<any[]>([]);
+  const [activeChat, setActiveChat] = useState<{id: string, title: string} | null>(null);
 
   // Multi-Stop State
   const [inputCity, setInputCity] = useState("");
@@ -256,6 +258,12 @@ export default function WarehouseView({ userId }: { userId: string }) {
                 }`}>
                   {ship.status}
                 </span>
+                <button 
+  onClick={() => setActiveChat({ id: ship.id, title: `Truck to ${ship.destination}` })}
+  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded border ml-2"
+>
+  💬 Chat
+</button>
               </div>
 
               {/* Status Steps */}
@@ -283,7 +291,18 @@ export default function WarehouseView({ userId }: { userId: string }) {
           ))}
           {myShipments.length === 0 && <p className="text-gray-500 italic">No past shipments found.</p>}
         </div>
+        {/* ... inside the return div, at the very end ... */}
+
       </div>
+      {activeChat && (
+  <ChatWindow 
+    shipmentId={activeChat.id} 
+    currentUserId={userId} 
+    title={activeChat.title}
+    onClose={() => setActiveChat(null)} 
+  />
+)}
+      
     </div>
   );
 }
